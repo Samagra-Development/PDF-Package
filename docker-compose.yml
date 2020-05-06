@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  web:
+    build: ./web
+    ports:
+      - 5000:5000
+    volumes:
+      - ./web/:/usr/src/app/
+    depends_on:
+      - db 
+    container_name: python   
+    
+  db:
+    image: postgres:latest
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    container_name: psql  
+    environment:
+      - POSTGRES_USER=auriga
+      - POSTGRES_PASSWORD=auriga123
+      - POSTGRES_DB=auriga  
+volumes:
+  db-data:
