@@ -25,5 +25,5 @@ COPY . /usr/src/
 COPY delete-file-cron /etc/crontabs/root
 
 CMD flask db upgrade && python3 -m pdfbase.main
-CMD ["crond", "-f", "-d", "8"]
+#CMD ["crond", "-f", "-d", "8"]
 

@@ -11,6 +11,7 @@ from interface import Interface
 from db.app import DB, get_db
 from db.models import PdfData, OutputTable, TempData
 from utils.func import initialize_logger
+from sqlalchemy import desc
 
 class PDFPlugin(Interface):
 
@@ -180,7 +181,7 @@ class PDFBuilder:
         while 1:
             results = []
             qms = PdfData.query.filter(PdfData.tries < self._config.retries,
--                                       PdfData.task_completed == False).limit(
+                                       PdfData.task_completed == False).order_by(desc(PdfData.unique_id)).limit(
                                            self._config.max_concurrency).all()
             if not qms:
                 print("Sleeping for 10 seconds")

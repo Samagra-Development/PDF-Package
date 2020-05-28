@@ -17,7 +17,7 @@ from interface import implements
 from queuelib import FifoDiskQueue
 from pdfbase.internal import PDFPlugin
 from plugin.file_uploader.file_uploader import FileUploader
-from utils.func import initialize_logger
+from utils.func import initialize_logger, send_whatsapp_msg
 
 
 # implement interface
@@ -89,6 +89,8 @@ class GoogleDocsSheetsPlugin(implements(PDFPlugin)):
         """
         error = None
         try:
+            print(sheet_id)
+            print(var_mapping)
             client = self._get_token()[0]
             base_sheet = client.open_by_key(sheet_id)
             sheet = base_sheet.worksheet(var_mapping)
@@ -102,10 +104,12 @@ class GoogleDocsSheetsPlugin(implements(PDFPlugin)):
             error = "Failed to fetch mapping detials"
             mapping_values = None
             self.logger.error("Exception occurred", exc_info=True)
+            print(ex)
         except Exception as ex:
             error = "Failed to fetch mapping detials"
             mapping_values = None
             self.logger.error("Exception occurred", exc_info=True)
+            print(ex)
         return mapping_values, error
 
     def get_tags(self):
@@ -168,6 +172,7 @@ class GoogleDocsSheetsPlugin(implements(PDFPlugin)):
             error = "Failed to fetch mapping detials"
             mapping_values = None
             self.logger.error("Exception occurred", exc_info=True)
+        
         return error
 
     def fetch_mapping(self, data):
@@ -180,10 +185,15 @@ class GoogleDocsSheetsPlugin(implements(PDFPlugin)):
         try:
             self.raw_data = data
             self.get_tags()
-            get_value_mapping = self.get_sheetvalues(data['SHEETID'], data['MAPPINGDETAILS'])
+            if (data['FORMID'] == 'elem_men_v1'):
+                sheet_id = self.config['SHEETID']
+            else:
+                sheet_id = data['SHEETID']
+            print(sheet_id)    
+            get_value_mapping = self.get_sheetvalues(sheet_id, data['MAPPINGDETAILS'])
             mapping_error = get_value_mapping[1]  # Error in fetching mapping
             mapping_values = get_value_mapping[0]  # mapping values list
-            get_options_mapping = self.get_sheetvalues(data['SHEETID'],
+            get_options_mapping = self.get_sheetvalues(sheet_id,
                                                        data['OPTIONSSHEET'])
             options_error = get_options_mapping[1]  # Error in fetching options
             options_mapping = get_options_mapping[0]  # options mapping list
@@ -197,8 +207,9 @@ class GoogleDocsSheetsPlugin(implements(PDFPlugin)):
                 self.raw_data = raw_data
             else:
                 error = str(mapping_error) + str(options_error)
-
+                print(error)
         except Exception as ex:
+            print(ex)
             error = "Failed to fetch mapping detials"
             self.logger.error("Exception occurred", exc_info=True)
         return raw_data, error
@@ -293,10 +304,14 @@ class GoogleDocsSheetsPlugin(implements(PDFPlugin)):
                     file_name = data[raw_data['FILENAMEFIELD']] + '_' + str(
                         calendar.timegm(time.gmtime()))
                 print(file_name)
+                if (raw_data['FORMID'] == 'elem_men_v1'):
+                    template_id = self.config['DOCTEMPLATEID']
+                else:
+                    template_id = raw_data['DOCTEMPLATEID']
                 payload = {
                     "fileName": file_name,
                     "mylist": final_data_str,
-                    "templateId": raw_data['DOCTEMPLATEID']
+                    "templateId": template_id
                 }  # Encoding the url with payload
                 if ('ODKUSERNAME' in self.raw_data.keys() and self.raw_data['ODKUSERNAME']
                         and 'ODKPASSWORD' in self.raw_data.keys() and self.raw_data['ODKPASSWORD']):
@@ -362,6 +377,22 @@ class GoogleDocsSheetsPlugin(implements(PDFPlugin)):
                         upload_file_url = url
                         expire_timestamp = resp[2]
                         os.remove(os.path.dirname(__file__) + self.config['DIRPATH'] + key)
+                tags = self.get_tags()
+                if 'SENDMSG' in self.config[tags["FORMID"]].keys() and \
+                        self.config[tags["FORMID"]]['SENDMSG']:
+                    raw_data = self.raw_data
+                    req_data = raw_data['req_data']
+                    name = req_data[self.config[tags["FORMID"]]['NAMEFIELD']]
+                    mobile = req_data[self.config[tags["FORMID"]]['MSGFIELD']]
+                    print(raw_data)
+                    print(name)
+                    print(mobile)
+                    # req_data = raw_data['req_data']
+                    '''send_mail('kamaldeep.kaur@aurigait.com', upload_file_url, name,
+                              key)'''
+                    send_whatsapp_msg(mobile,
+                                  upload_file_url,
+                                  name)
 
             self._delete_file_drive(file_url)
         except Exception as ex:
@@ -401,7 +432,7 @@ class GoogleDocsSheetsPlugin(implements(PDFPlugin)):
         except Exception as ex:
             error = 'Failed to delete file'
             print(ex)
-            self.logger.error("Exception occurred", exc_info=True)
+            #self.logger.error("Exception occurred", exc_info=True)
         return error, done
 
     def delete_file_drive_google_script(self, file):

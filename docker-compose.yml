@@ -22,7 +22,7 @@ services:
   plugin:
     image: *pdf-builder
     build: ./src
-    command: "python3 -m plugin.google_doc_plugin.server run"
+    command: "python3 -m plugin.odk_plugin.server run"
     ports:
       - "5000:5000"
     volumes:
@@ -32,7 +32,7 @@ services:
   graphql-engine:
     image: hasura/graphql-engine:v1.1.1
     ports:
-      - "8080:8080"
+      - "5001:8080"
     depends_on:
       - db
     restart: always
